@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import TeacherRegistry from './TeacherRegistry.jsx';
+
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
   { icon: '☑', label: 'Daily Attendance' },
@@ -13,23 +16,73 @@ const periods = [
   { period: 'P-5', subject: 'English', className: 'Grade 11-B', teacher: 'Mr. S. Fernando', state: 'Assigned', tone: 'covered' },
 ];
 
-function Sidebar() {
+function Sidebar({ onNavigate }) {
   return (
     <aside className="sidebar">
       <a className="brand" href="#top" aria-label="SmartRelief SL home">
         <span className="brand-mark">↗</span>
-        <span><strong>SmartRelief SL</strong><small>School Portal</small></span>
+        <span>
+          <strong>SmartRelief SL</strong>
+          <small>School Portal</small>
+        </span>
       </a>
-      <div className="school-card"><span className="eyebrow">SELECTED SCHOOL</span><strong>My School</strong></div>
+
+      <div className="school-card">
+        <span className="eyebrow">SELECTED SCHOOL</span>
+        <strong>My School</strong>
+      </div>
+
       <nav aria-label="Main navigation">
-        {navItems.map((item) => <a className={`nav-item ${item.active ? 'active' : ''}`} href="#" key={item.label}>
-          <span className="nav-icon">{item.icon}</span>{item.label}{item.badge && <span className="nav-badge">{item.badge}</span>}
-        </a>)}
+        {navItems.map((item) => (
+          <a
+            className={`nav-item ${item.active ? 'active' : ''}`}
+            href="#"
+            key={item.label}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            {item.label}
+            {item.badge && <span className="nav-badge">{item.badge}</span>}
+          </a>
+        ))}
+
         <span className="nav-heading">SCHOOL REGISTRY</span>
-        {registryItems.map((item) => <a className="nav-item compact" href="#" key={item}><span className="nav-icon">◈</span>{item}</a>)}
-        <a className="nav-item compact" href="#"><span className="nav-icon">⚙</span>Settings</a>
+
+        {registryItems.map((item) => (
+          <button
+            className="nav-item compact"
+            key={item}
+            onClick={() => {
+              if (item === 'Teachers Registry') {
+                onNavigate('Teachers Registry');
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 0,
+              textAlign: 'left',
+              width: '100%',
+            }}
+            type="button"
+          >
+            <span className="nav-icon">◈</span>
+            {item}
+          </button>
+        ))}
+
+        <a className="nav-item compact" href="#">
+          <span className="nav-icon">⚙</span>
+          Settings
+        </a>
       </nav>
-      <div className="account"><div className="avatar admin-avatar">AD</div><span><strong>School Admin</strong><small>Administrator</small></span><span className="account-menu">⌄</span></div>
+
+      <div className="account">
+        <div className="avatar admin-avatar">AD</div>
+        <span>
+          <strong>School Admin</strong>
+          <small>Administrator</small>
+        </span>
+        <span className="account-menu">⌄</span>
+      </div>
     </aside>
   );
 }
@@ -39,9 +92,28 @@ function StatCard({ label, value, hint, color }) {
 }
 
 function App() {
+ const [activePage, setActivePage] = useState('Dashboard');
+
+if (activePage === 'Teachers Registry') {
   return (
     <div className="app-shell" id="top">
-      <Sidebar />
+      <Sidebar onNavigate={setActivePage} />
+      <div className="main-content">
+        <button
+          className="button button-light"
+          onClick={() => setActivePage('Dashboard')}
+          type="button"
+        >
+          ← Back to Dashboard
+        </button>
+        <TeacherRegistry />
+      </div>
+    </div>
+  );
+}
+  return (
+    <div className="app-shell" id="top">
+      <Sidebar onNavigate={setActivePage} />
       <main className="main-content">
         <header className="topbar">
           <label className="search-box"><span>⌕</span><input aria-label="Search" placeholder="Search teachers, subjects, or classes..." /></label>
