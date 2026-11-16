@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import TeacherRegistry from './TeacherRegistry.jsx';
+import SubjectRegistry from './SubjectRegistry.jsx';
 
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
@@ -52,10 +53,10 @@ function Sidebar({ onNavigate }) {
             className="nav-item compact"
             key={item}
             onClick={() => {
-              if (item === 'Teachers Registry') {
-                onNavigate('Teachers Registry');
-              }
-            }}
+  if (item === 'Teachers Registry' || item === 'Subjects & Load') {
+    onNavigate(item);
+  }
+}}
             style={{
               background: 'transparent',
               border: 0,
@@ -94,7 +95,7 @@ function StatCard({ label, value, hint, color }) {
 function App() {
  const [activePage, setActivePage] = useState('Dashboard');
 
-if (activePage === 'Teachers Registry') {
+if (activePage === 'Teachers Registry' || activePage === 'Subjects & Load') {
   return (
     <div className="app-shell" id="top">
       <Sidebar onNavigate={setActivePage} />
@@ -106,7 +107,7 @@ if (activePage === 'Teachers Registry') {
         >
           ← Back to Dashboard
         </button>
-        <TeacherRegistry />
+        {activePage === 'Teachers Registry' ? <TeacherRegistry /> : <SubjectRegistry />}
       </div>
     </div>
   );

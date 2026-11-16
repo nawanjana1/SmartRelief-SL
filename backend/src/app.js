@@ -143,5 +143,100 @@ export function createApp() {
 
     return response.json(data[0]);
   });
+  
+   app.get('/api/subjects', async (_request, response) => {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('id, code, name, is_active')
+      .order('name');
+
+    if (error) {
+      console.error('Failed to load subjects:', error.message);
+      return response.status(500).json({ error: 'Unable to load subjects' });
+    }
+
+    return response.json(data);
+  });
+
+  app.post('/api/subjects', async (request, response) => {
+    const body = request.body ?? {};
+    const code =
+      typeof body.code === 'string' ? body.code.trim().toUpperCase() : '';
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+
+    if (!code || !name) {
+      return response.status(400).json({
+        error: 'Subject code and name are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('subjects')
+      .insert({ code, name })
+      .select('id, code, name, is_active')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return response.status(409).json({ error: 'That subject code already exists' });
+      }
+
+      console.error('Failed to add subject:', error.message);
+      return response.status(500).json({ error: 'Unable to add subject' });
+    }
+
+    return response.status(201).json(data);
+  }); 
+ 
+   app.patch('/api/subjects/:id', async (request, response) => {
+    const body = request.body ?? {};
+    const updates = {};
+
+    if ('code' in body) {
+      if (typeof body.code !== 'string' || !body.code.trim()) {
+        return response.status(400).json({ error: 'Subject code cannot be empty' });
+      }
+      updates.code = body.code.trim().toUpperCase();
+    }
+
+    if ('name' in body) {
+      if (typeof body.name !== 'string' || !body.name.trim()) {
+        return response.status(400).json({ error: 'Subject name cannot be empty' });
+      }
+      updates.name = body.name.trim();
+    }
+
+    if ('is_active' in body) {
+      if (typeof body.is_active !== 'boolean') {
+        return response.status(400).json({ error: 'Active status must be true or false' });
+      }
+      updates.is_active = body.is_active;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return response.status(400).json({ error: 'No subject fields were provided' });
+    }
+
+    const { data, error } = await supabase
+      .from('subjects')
+      .update(updates)
+      .eq('id', request.params.id)
+      .select('id, code, name, is_active');
+
+    if (error) {
+      if (error.code === '23505') {
+        return response.status(409).json({ error: 'That subject code already exists' });
+      }
+
+      console.error('Failed to update subject:', error.message);
+      return response.status(500).json({ error: 'Unable to update subject' });
+    }
+
+    if (!data || data.length === 0) {
+      return response.status(404).json({ error: 'Subject not found' });
+    }
+
+    return response.json(data[0]);
+  });
   return app;
 }
