@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TeacherRegistry from './TeacherRegistry.jsx';
 import SubjectRegistry from './SubjectRegistry.jsx';
+import ClassRegistry from './ClassRegistry.jsx';
 
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
@@ -53,9 +54,13 @@ function Sidebar({ onNavigate }) {
             className="nav-item compact"
             key={item}
             onClick={() => {
-  if (item === 'Teachers Registry' || item === 'Subjects & Load') {
-    onNavigate(item);
-  }
+  if (
+  item === 'Teachers Registry' ||
+  item === 'Subjects & Load' ||
+  item === 'Classes & Sections'
+) {
+  onNavigate(item);
+}
 }}
             style={{
               background: 'transparent',
@@ -95,7 +100,11 @@ function StatCard({ label, value, hint, color }) {
 function App() {
  const [activePage, setActivePage] = useState('Dashboard');
 
-if (activePage === 'Teachers Registry' || activePage === 'Subjects & Load') {
+if (
+  activePage === 'Teachers Registry' ||
+  activePage === 'Subjects & Load' ||
+  activePage === 'Classes & Sections'
+) {
   return (
     <div className="app-shell" id="top">
       <Sidebar onNavigate={setActivePage} />
@@ -107,7 +116,13 @@ if (activePage === 'Teachers Registry' || activePage === 'Subjects & Load') {
         >
           ← Back to Dashboard
         </button>
-        {activePage === 'Teachers Registry' ? <TeacherRegistry /> : <SubjectRegistry />}
+        {activePage === 'Teachers Registry' ? (
+  <TeacherRegistry />
+) : activePage === 'Subjects & Load' ? (
+  <SubjectRegistry />
+) : (
+  <ClassRegistry />
+)}
       </div>
     </div>
   );

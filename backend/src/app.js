@@ -195,6 +195,10 @@ export function createApp() {
     if ('code' in body) {
       if (typeof body.code !== 'string' || !body.code.trim()) {
         return response.status(400).json({ error: 'Subject code cannot be empty' });
+
+         
+
+ 
       }
       updates.code = body.code.trim().toUpperCase();
     }
@@ -237,6 +241,52 @@ export function createApp() {
     }
 
     return response.json(data[0]);
+  });
+  
+   app.post('/api/classes', async (request, response) => {
+    const body = request.body ?? {};
+    const grade = Number(body.grade);
+    const section =
+      typeof body.section === 'string' ? body.section.trim().toUpperCase() : '';
+
+    if (!Number.isInteger(grade) || grade < 1 || grade > 13 || !section) {
+      return response.status(400).json({
+        error: 'Grade (1–13) and section are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('school_classes')
+      .insert({ grade, section })
+      .select('id, grade, section, created_at')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return response.status(409).json({
+          error: 'That grade and section already exist',
+        });
+      }
+
+      console.error('Failed to add class:', error.message);
+      return response.status(500).json({ error: 'Unable to add class' });
+    }
+
+    return response.status(201).json(data);
+  }); 
+  app.get('/api/classes', async (_request, response) => {
+    const { data, error } = await supabase
+      .from('school_classes')
+      .select('id, grade, section, created_at')
+      .order('grade')
+      .order('section');
+
+    if (error) {
+      console.error('Failed to load classes:', error.message);
+      return response.status(500).json({ error: 'Unable to load classes' });
+    }
+
+    return response.json(data);
   });
   return app;
 }
