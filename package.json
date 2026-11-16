@@ -1,0 +1,15 @@
+{
+  "name": "smartrelief-sl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Teacher relief and timetable management for Sri Lankan schools",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev:backend": "npm run dev --workspace backend",
+    "build": "npm run build --workspace frontend"
+  }
+}
