@@ -288,5 +288,64 @@ export function createApp() {
 
     return response.json(data);
   });
+  
+    app.get('/api/teacher-subjects', async (_request, response) => {
+    const { data, error } = await supabase
+      .from('teacher_subjects')
+      .select('teacher_id, subject_id, grade_levels')
+      .order('teacher_id');
+
+    if (error) {
+      console.error('Failed to load teacher subjects:', error.message);
+      return response.status(500).json({ error: 'Unable to load assignments' });
+    }
+
+    return response.json(data);
+  });
+
+  app.post('/api/teacher-subjects', async (request, response) => {
+    const body = request.body ?? {};
+    const teacherId =
+      typeof body.teacher_id === 'string' ? body.teacher_id.trim() : '';
+    const subjectId =
+      typeof body.subject_id === 'string' ? body.subject_id.trim() : '';
+    const gradeLevels = Array.isArray(body.grade_levels)
+      ? [...new Set(body.grade_levels)]
+      : [];
+
+    if (
+      !teacherId ||
+      !subjectId ||
+      gradeLevels.length === 0 ||
+      !gradeLevels.every(
+        (grade) => Number.isInteger(grade) && grade >= 1 && grade <= 13,
+      )
+    ) {
+      return response.status(400).json({
+        error: 'Teacher, subject, and valid grade levels are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('teacher_subjects')
+      .upsert(
+        {
+          teacher_id: teacherId,
+          subject_id: subjectId,
+          grade_levels: gradeLevels.sort((a, b) => a - b),
+        },
+        { onConflict: 'teacher_id,subject_id' },
+      )
+      .select('teacher_id, subject_id, grade_levels')
+      .single();
+
+    if (error) {
+      console.error('Failed to save teacher subject:', error.message);
+      return response.status(500).json({ error: 'Unable to save assignment' });
+    }
+
+    return response.status(201).json(data);
+  });
+  
   return app;
 }

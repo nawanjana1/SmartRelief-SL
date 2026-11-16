@@ -2,6 +2,7 @@ import { useState } from 'react';
 import TeacherRegistry from './TeacherRegistry.jsx';
 import SubjectRegistry from './SubjectRegistry.jsx';
 import ClassRegistry from './ClassRegistry.jsx';
+import TeacherSubjectLoad from './TeacherSubjectLoad.jsx';
 
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
@@ -119,7 +120,10 @@ if (
         {activePage === 'Teachers Registry' ? (
   <TeacherRegistry />
 ) : activePage === 'Subjects & Load' ? (
+  <>
   <SubjectRegistry />
+  <TeacherSubjectLoad />
+</>
 ) : (
   <ClassRegistry />
 )}
