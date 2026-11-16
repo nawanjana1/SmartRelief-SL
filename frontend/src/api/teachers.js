@@ -24,3 +24,15 @@ export async function addTeacher(teacher) {
 
   return readResponse(response);
 }
+
+export async function updateTeacher(id, updates) {
+  const response = await fetch(`/api/teachers/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  return readResponse(response);
+}

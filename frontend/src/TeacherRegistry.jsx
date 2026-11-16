@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { addTeacher, getTeachers } from './api/teachers.js';
+import {
+  addTeacher,
+  getTeachers,
+  updateTeacher,
+} from './api/teachers.js';
 
 const emptyForm = {
   employee_number: '',
@@ -11,6 +15,7 @@ const emptyForm = {
 export default function TeacherRegistry() {
   const [teachers, setTeachers] = useState([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -40,26 +45,86 @@ export default function TeacherRegistry() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function startEdit(teacher) {
+    setEditingId(teacher.id);
+    setForm({
+      employee_number: teacher.employee_number,
+      full_name: teacher.full_name,
+      email: teacher.email ?? '',
+      department: teacher.department ?? '',
+    });
+    setError('');
+    setMessage('');
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setError('');
+    setMessage('');
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
     setMessage('');
     setSaving(true);
 
+    const teacherData = {
+      employee_number: form.employee_number.trim(),
+      full_name: form.full_name.trim(),
+      email: form.email.trim() || null,
+      department: form.department.trim() || null,
+    };
+
     try {
-      const created = await addTeacher({
-        ...form,
-        email: form.email.trim() || null,
-        department: form.department.trim() || null,
+      if (editingId) {
+        const updated = await updateTeacher(editingId, teacherData);
+
+        setTeachers((current) =>
+          current
+            .map((teacher) => (teacher.id === updated.id ? updated : teacher))
+            .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+        );
+        setMessage('Teacher updated successfully.');
+      } else {
+        const created = await addTeacher(teacherData);
+
+        setTeachers((current) =>
+          [...current, created].sort((a, b) =>
+            a.full_name.localeCompare(b.full_name),
+          ),
+        );
+        setMessage('Teacher added successfully.');
+      }
+
+      setEditingId(null);
+      setForm(emptyForm);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleTeacherStatus(teacher) {
+    setError('');
+    setMessage('');
+    setSaving(true);
+
+    try {
+      const updated = await updateTeacher(teacher.id, {
+        is_active: !teacher.is_active,
       });
 
       setTeachers((current) =>
-        [...current, created].sort((a, b) =>
-          a.full_name.localeCompare(b.full_name),
-        ),
+        current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      setForm(emptyForm);
-      setMessage('Teacher added successfully.');
+      setMessage(
+        updated.is_active
+          ? 'Teacher activated successfully.'
+          : 'Teacher deactivated successfully.',
+      );
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -73,11 +138,9 @@ export default function TeacherRegistry() {
         <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">
           School Registry
         </p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-900">
-          Teachers
-        </h1>
+        <h1 className="mt-1 text-3xl font-bold text-slate-900">Teachers</h1>
         <p className="mt-2 text-slate-600">
-          Add teachers and view the school registry.
+          Add, edit, and manage the school teacher registry.
         </p>
       </header>
 
@@ -132,14 +195,28 @@ export default function TeacherRegistry() {
           />
         </label>
 
-        <div className="md:col-span-2">
+        <div className="flex gap-2 md:col-span-2">
           <button
             type="submit"
             disabled={saving}
             className="rounded-lg bg-sky-700 px-5 py-2.5 font-semibold text-white disabled:opacity-60"
           >
-            {saving ? 'Saving...' : 'Add teacher'}
+            {saving
+              ? 'Saving...'
+              : editingId
+                ? 'Save changes'
+                : 'Add teacher'}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="rounded-lg bg-slate-100 px-5 py-2.5 font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 
@@ -160,19 +237,42 @@ export default function TeacherRegistry() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-6 py-3">Employee no.</th>
-                  <th className="px-6 py-3">Name</th>
-                  <th className="px-6 py-3">Email</th>
-                  <th className="px-6 py-3">Department</th>
+                  <th className="px-4 py-3">Employee no.</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Department</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {teachers.map((teacher) => (
                   <tr key={teacher.id} className="border-t border-slate-100">
-                    <td className="px-6 py-3">{teacher.employee_number}</td>
-                    <td className="px-6 py-3 font-medium">{teacher.full_name}</td>
-                    <td className="px-6 py-3">{teacher.email || '—'}</td>
-                    <td className="px-6 py-3">{teacher.department || '—'}</td>
+                    <td className="px-4 py-3">{teacher.employee_number}</td>
+                    <td className="px-4 py-3 font-medium">{teacher.full_name}</td>
+                    <td className="px-4 py-3">{teacher.email || '—'}</td>
+                    <td className="px-4 py-3">{teacher.department || '—'}</td>
+                    <td className="px-4 py-3">
+                      {teacher.is_active ? 'Active' : 'Inactive'}
+                    </td>
+                    <td className="space-x-3 px-4 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => startEdit(teacher)}
+                        className="font-semibold text-sky-700 disabled:opacity-60"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => toggleTeacherStatus(teacher)}
+                        className="font-semibold text-slate-600 disabled:opacity-60"
+                      >
+                        {teacher.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
