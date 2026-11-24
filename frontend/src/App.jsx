@@ -5,7 +5,7 @@ import ClassRegistry from './ClassRegistry.jsx';
 import TeacherSubjectLoad from './TeacherSubjectLoad.jsx';
 import AttendanceRegistry from './AttendanceRegistry.jsx';
 import MasterTimetable from './MasterTimetable.jsx';
-
+import ReliefAssignments from './ReliefAssignments.jsx';
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
   { icon: '☑', label: 'Daily Attendance' },
@@ -43,6 +43,7 @@ function Sidebar({ onNavigate }) {
             onClick={(event) => {
   if (
   item.label === 'Daily Attendance' ||
+  item.label === 'Relief Assignments' ||
   item.label === 'Master Timetable'
 ) {
   event.preventDefault();
@@ -112,6 +113,7 @@ function App() {
 if (
   activePage === 'Daily Attendance' ||
   activePage === 'Master Timetable' ||
+  activePage === 'Relief Assignments' ||
   activePage === 'Teachers Registry' ||
   activePage === 'Subjects & Load' ||
   activePage === 'Classes & Sections'
@@ -128,11 +130,12 @@ if (
           ← Back to Dashboard
         </button>
 
-        {activePage === 'Daily Attendance' ? (
+        {activePage === 'Relief Assignments' ? (
+          <ReliefAssignments />
+        ) : activePage === 'Daily Attendance' ? (
           <AttendanceRegistry />
-
-          ) : activePage === 'Master Timetable' ? (
-  <MasterTimetable />
+        ) : activePage === 'Master Timetable' ? (
+          <MasterTimetable />
         ) : activePage === 'Teachers Registry' ? (
           <TeacherRegistry />
         ) : activePage === 'Subjects & Load' ? (

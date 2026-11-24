@@ -503,5 +503,81 @@ export function createApp() {
 
     return response.status(201).json(data);
   });
+  
+    app.get('/api/relief-assignments', async (request, response) => {
+    const date = request.query.date;
+
+    let query = supabase
+      .from('relief_assignments')
+      .select(
+        'id, timetable_entry_id, assignment_date, absent_teacher_id, relief_teacher_id, suitability_score, status',
+      )
+      .order('assignment_date', { ascending: false });
+
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      query = query.eq('assignment_date', date);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Failed to load relief assignments:', error.message);
+      return response.status(500).json({ error: 'Unable to load relief assignments' });
+    }
+
+    return response.json(data);
+  });
+
+  app.post('/api/relief-assignments', async (request, response) => {
+    const body = request.body ?? {};
+    const timetableEntryId =
+      typeof body.timetable_entry_id === 'string' ? body.timetable_entry_id : '';
+    const absentTeacherId =
+      typeof body.absent_teacher_id === 'string' ? body.absent_teacher_id : '';
+    const reliefTeacherId =
+      typeof body.relief_teacher_id === 'string' ? body.relief_teacher_id : '';
+    const assignmentDate =
+      typeof body.assignment_date === 'string' ? body.assignment_date : '';
+    const score = Number(body.suitability_score ?? 0);
+    const status = body.status || 'assigned';
+
+    if (
+      !timetableEntryId ||
+      !absentTeacherId ||
+      !reliefTeacherId ||
+      absentTeacherId === reliefTeacherId ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate) ||
+      !Number.isFinite(score) ||
+      score < 0 ||
+      score > 100 ||
+      !['assigned', 'accepted', 'declined', 'completed', 'cancelled'].includes(status)
+    ) {
+      return response.status(400).json({
+        error: 'Valid timetable, teachers, date, score, and status are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('relief_assignments')
+      .insert({
+        timetable_entry_id: timetableEntryId,
+        assignment_date: assignmentDate,
+        absent_teacher_id: absentTeacherId,
+        relief_teacher_id: reliefTeacherId,
+        suitability_score: score,
+        status,
+      })
+      .select(
+        'id, timetable_entry_id, assignment_date, absent_teacher_id, relief_teacher_id, suitability_score, status',
+      )
+      .single();
+
+    if (error) {
+      console.error('Failed to save relief assignment:', error.message);
+      return response.status(500).json({ error: 'Unable to save relief assignment' });
+    }
+
+    return response.status(201).json(data);
+  });
   return app;
 }
