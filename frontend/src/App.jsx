@@ -3,6 +3,7 @@ import TeacherRegistry from './TeacherRegistry.jsx';
 import SubjectRegistry from './SubjectRegistry.jsx';
 import ClassRegistry from './ClassRegistry.jsx';
 import TeacherSubjectLoad from './TeacherSubjectLoad.jsx';
+import AttendanceRegistry from './AttendanceRegistry.jsx';
 
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
@@ -38,9 +39,12 @@ function Sidebar({ onNavigate }) {
       <nav aria-label="Main navigation">
         {navItems.map((item) => (
           <a
-            className={`nav-item ${item.active ? 'active' : ''}`}
-            href="#"
-            key={item.label}
+            onClick={(event) => {
+  if (item.label === 'Daily Attendance') {
+    event.preventDefault();
+    onNavigate(item.label);
+  }
+}}
           >
             <span className="nav-icon">{item.icon}</span>
             {item.label}
@@ -102,6 +106,7 @@ function App() {
  const [activePage, setActivePage] = useState('Dashboard');
 
 if (
+  activePage === 'Daily Attendance' ||
   activePage === 'Teachers Registry' ||
   activePage === 'Subjects & Load' ||
   activePage === 'Classes & Sections'
@@ -117,16 +122,19 @@ if (
         >
           ← Back to Dashboard
         </button>
-        {activePage === 'Teachers Registry' ? (
-  <TeacherRegistry />
-) : activePage === 'Subjects & Load' ? (
-  <>
-  <SubjectRegistry />
-  <TeacherSubjectLoad />
-</>
-) : (
-  <ClassRegistry />
-)}
+
+        {activePage === 'Daily Attendance' ? (
+          <AttendanceRegistry />
+        ) : activePage === 'Teachers Registry' ? (
+          <TeacherRegistry />
+        ) : activePage === 'Subjects & Load' ? (
+          <>
+            <SubjectRegistry />
+            <TeacherSubjectLoad />
+          </>
+        ) : (
+          <ClassRegistry />
+        )}
       </div>
     </div>
   );

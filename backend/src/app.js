@@ -346,6 +346,88 @@ export function createApp() {
 
     return response.status(201).json(data);
   });
-  
+ 
+    app.get('/api/teacher-attendance', async (request, response) => {
+    const date = request.query.date;
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return response.status(400).json({ error: 'A valid date is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('teacher_attendance')
+      .select('id, teacher_id, attendance_date, status, note')
+      .eq('attendance_date', date)
+      .order('teacher_id');
+
+    if (error) {
+      console.error('Failed to load attendance:', error.message);
+      return response.status(500).json({ error: 'Unable to load attendance' });
+    }
+
+    return response.json(data);
+  });
+
+  app.post('/api/teacher-attendance', async (request, response) => {
+    const body = request.body ?? {};
+    const teacherId =
+      typeof body.teacher_id === 'string' ? body.teacher_id.trim() : '';
+    const date =
+      typeof body.attendance_date === 'string' ? body.attendance_date : '';
+    const status = body.status;
+    const note = typeof body.note === 'string' ? body.note.trim() : '';
+
+    if (
+      !teacherId ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !['present', 'absent', 'half_day'].includes(status)
+    ) {
+      return response.status(400).json({
+        error: 'Teacher, date, and a valid attendance status are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('teacher_attendance')
+      .insert({
+        teacher_id: teacherId,
+        attendance_date: date,
+        status,
+        note: note || null,
+      })
+      .select('id, teacher_id, attendance_date, status, note')
+      .single();
+
+    if (error) {
+      console.error('Failed to save attendance:', error.message);
+      return response.status(500).json({ error: 'Unable to save attendance' });
+    }
+
+    return response.status(201).json(data);
+  });
+
+  app.patch('/api/teacher-attendance/:id', async (request, response) => {
+    const body = request.body ?? {};
+    const status = body.status;
+    const note = typeof body.note === 'string' ? body.note.trim() : '';
+
+    if (!['present', 'absent', 'half_day'].includes(status)) {
+      return response.status(400).json({ error: 'A valid status is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('teacher_attendance')
+      .update({ status, note: note || null })
+      .eq('id', request.params.id)
+      .select('id, teacher_id, attendance_date, status, note')
+      .single();
+
+    if (error) {
+      console.error('Failed to update attendance:', error.message);
+      return response.status(500).json({ error: 'Unable to update attendance' });
+    }
+
+    return response.json(data);
+  });
   return app;
 }
