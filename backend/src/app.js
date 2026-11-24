@@ -429,5 +429,79 @@ export function createApp() {
 
     return response.json(data);
   });
+  
+    app.get('/api/timetable', async (_request, response) => {
+    const { data, error } = await supabase
+      .from('timetable_entries')
+      .select(
+        'id, academic_year, term, weekday, class_id, period_number, subject_id, teacher_id, room',
+      )
+      .order('academic_year')
+      .order('term')
+      .order('weekday')
+      .order('period_number');
+
+    if (error) {
+      console.error('Failed to load timetable:', error.message);
+      return response.status(500).json({ error: 'Unable to load timetable' });
+    }
+
+    return response.json(data);
+  });
+
+  app.post('/api/timetable', async (request, response) => {
+    const body = request.body ?? {};
+    const academicYear = Number(body.academic_year);
+    const term = Number(body.term);
+    const weekday = Number(body.weekday);
+    const periodNumber = Number(body.period_number);
+    const classId = typeof body.class_id === 'string' ? body.class_id : '';
+    const subjectId = typeof body.subject_id === 'string' ? body.subject_id : '';
+    const teacherId = typeof body.teacher_id === 'string' ? body.teacher_id : '';
+    const room = typeof body.room === 'string' ? body.room.trim() : '';
+
+    if (
+      !Number.isInteger(academicYear) ||
+      !Number.isInteger(term) ||
+      term < 1 ||
+      term > 3 ||
+      !Number.isInteger(weekday) ||
+      weekday < 1 ||
+      weekday > 5 ||
+      !Number.isInteger(periodNumber) ||
+      periodNumber < 1 ||
+      !classId ||
+      !subjectId ||
+      !teacherId
+    ) {
+      return response.status(400).json({
+        error: 'Academic year, term, weekday, period, class, subject, and teacher are required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('timetable_entries')
+      .insert({
+        academic_year: academicYear,
+        term,
+        weekday,
+        class_id: classId,
+        period_number: periodNumber,
+        subject_id: subjectId,
+        teacher_id: teacherId,
+        room: room || null,
+      })
+      .select(
+        'id, academic_year, term, weekday, class_id, period_number, subject_id, teacher_id, room',
+      )
+      .single();
+
+    if (error) {
+      console.error('Failed to add timetable entry:', error.message);
+      return response.status(500).json({ error: 'Unable to add timetable entry' });
+    }
+
+    return response.status(201).json(data);
+  });
   return app;
 }
