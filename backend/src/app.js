@@ -380,7 +380,7 @@ export function createApp() {
     if (
       !teacherId ||
       !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      !['present', 'absent', 'half_day'].includes(status)
+      !['present', 'absent', 'morning_half_day', 'afternoon_half_day', 'special_duty'].includes(status)
     ) {
       return response.status(400).json({
         error: 'Teacher, date, and a valid attendance status are required',

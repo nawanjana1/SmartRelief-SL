@@ -79,9 +79,21 @@ export default function ReliefAssignments() {
 
     const year = Number(academicYear);
     const selectedTerm = Number(term);
-    const absentTeacherIds = attendance
-      .filter((record) => ['absent', 'half_day'].includes(record.status))
-      .map((record) => record.teacher_id);
+    const absentStatuses = [
+  'absent',
+  'morning_half_day',
+  'afternoon_half_day',
+];
+
+const absentTeacherIds = attendance
+  .filter((record) => absentStatuses.includes(record.status))
+  .map((record) => record.teacher_id);
+
+const unavailableTeacherIds = attendance
+  .filter((record) =>
+    [...absentStatuses, 'special_duty'].includes(record.status),
+  )
+  .map((record) => record.teacher_id);
 
     const dayEntries = timetable.filter(
       (entry) =>
@@ -113,7 +125,7 @@ export default function ReliefAssignments() {
           (teacher) =>
             teacher &&
             teacher.id !== entry.teacher_id &&
-            !absentTeacherIds.includes(teacher.id) &&
+            !unavailableTeacherIds.includes(teacher.id) &&
             !dayEntries.some(
               (other) =>
                 other.teacher_id === teacher.id &&

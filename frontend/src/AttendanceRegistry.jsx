@@ -175,7 +175,9 @@ export default function AttendanceRegistry() {
                       <option value="">Choose status</option>
                       <option value="present">Present</option>
                       <option value="absent">Absent</option>
-                      <option value="half_day">Half-day</option>
+                      <option value="morning_half_day">Morning half-day</option>
+<option value="afternoon_half_day">Afternoon half-day</option>
+<option value="special_duty">Special duty</option>
                     </select>
                   </td>
                   <td className="px-5 py-4">

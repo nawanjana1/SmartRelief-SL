@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import TeacherRegistry from './TeacherRegistry.jsx';
 import SubjectRegistry from './SubjectRegistry.jsx';
 import ClassRegistry from './ClassRegistry.jsx';
@@ -6,6 +6,7 @@ import TeacherSubjectLoad from './TeacherSubjectLoad.jsx';
 import AttendanceRegistry from './AttendanceRegistry.jsx';
 import MasterTimetable from './MasterTimetable.jsx';
 import ReliefAssignments from './ReliefAssignments.jsx';
+import { getDashboardData } from './api/dashboard.js';
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
   { icon: '☑', label: 'Daily Attendance' },
@@ -110,6 +111,25 @@ function StatCard({ label, value, hint, color }) {
 function App() {
  const [activePage, setActivePage] = useState('Dashboard');
 
+   const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardError, setDashboardError] = useState('');
+
+  useEffect(() => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    getDashboardData(today, now.getFullYear(), 2)
+      .then(setDashboardData)
+      .catch((error) => setDashboardError(error.message));
+  }, []);
+
+  const pendingCoverageCount = dashboardData
+    ? Math.max(
+        0,
+        dashboardData.affectedPeriods.length - dashboardData.coveredCount,
+      )
+    : null;
+
 if (
   activePage === 'Daily Attendance' ||
   activePage === 'Master Timetable' ||
@@ -163,32 +183,169 @@ if (
           <div><span className="eyebrow heading-eyebrow">SCHOOL RELIEF MANAGEMENT</span><h1>Good morning, Admin</h1><p>Here is the relief coverage overview for today.</p></div>
           <button className="button button-secondary">▣ &nbsp; View timetable</button>
         </section>
-
+{dashboardError && (
+  <p className="rounded-lg bg-red-50 p-4 text-red-700">
+    Dashboard data error: {dashboardError}
+  </p>
+)}
         <section className="alert-card" aria-label="Uncovered periods alert">
           <div className="alert-symbol">!</div>
-          <div className="alert-copy"><strong>2 teaching periods need relief assignments</strong><p>Three staff absences have affected today's timetable. Review the ranked recommendations to continue.</p><span className="alert-tag">ACTION NEEDED</span></div>
+          <div className="alert-copy">
+  <strong>
+    {pendingCoverageCount === null
+      ? 'Loading relief coverage...'
+      : pendingCoverageCount > 0
+        ? `${pendingCoverageCount} teaching periods need relief assignments`
+        : 'All affected periods are covered'}
+  </strong>
+  <p>
+    {dashboardData
+      ? `${dashboardData.absentCount} teachers marked absent or half-day today.`
+      : 'Loading today’s attendance and timetable.'}
+  </p>
+  <span className="alert-tag">
+    {pendingCoverageCount > 0 ? 'ACTION NEEDED' : 'UP TO DATE'}
+  </span>
+</div>
           <button className="button button-primary">Review assignments <span>→</span></button>
         </section>
 
         <section className="stats-grid" aria-label="Today's statistics">
-          <StatCard label="TEACHING STAFF" value="45" hint="Across 5 departments" color="blue" />
-          <StatCard label="PRESENT TODAY" value="42" hint="Attendance recorded" color="green" />
-          <StatCard label="ABSENT / HALF-DAY" value="3" hint="2 absent · 1 half-day" color="red" />
-          <StatCard label="RELIEF COVERAGE" value="1 / 3" hint="1 covered · 2 pending" color="violet" />
+          <StatCard
+  label="TEACHING STAFF"
+  value={dashboardData?.activeTeacherCount ?? '—'}
+  hint="Active teachers"
+  color="blue"
+/>
+<StatCard
+  label="PRESENT TODAY"
+  value={dashboardData?.presentCount ?? '—'}
+  hint="Attendance recorded"
+  color="green"
+/>
+<StatCard
+  label="ABSENT / HALF-DAY"
+  value={dashboardData?.absentCount ?? '—'}
+  hint="Today's attendance"
+  color="red"
+/>
+<StatCard
+  label="RELIEF COVERAGE"
+  value={
+    dashboardData
+      ? `${dashboardData.coveredCount} / ${dashboardData.affectedPeriods.length}`
+      : '—'
+  }
+  hint="Covered periods / affected periods"
+  color="violet"
+/>
         </section>
 
         <section className="content-grid">
           <article className="panel assignments-panel">
             <div className="panel-heading"><div><span className="eyebrow">ATTENTION QUEUE</span><h2>Pending relief assignments</h2></div><button className="button button-light">View all <span>→</span></button></div>
             <div className="table-wrap"><table><thead><tr><th>PERIOD</th><th>CLASS & SUBJECT</th><th>ABSENT TEACHER</th><th>STATUS</th><th></th></tr></thead><tbody>
-              {periods.map((row) => <tr key={row.period}><td><strong>{row.period}</strong></td><td><strong>{row.className}</strong><small>{row.subject}</small></td><td>{row.teacher}</td><td><span className={`status-pill ${row.tone}`}>{row.state}</span></td><td>{row.tone === 'urgent' ? <button className="text-button">Find relief →</button> : <span className="covered-check">✓</span>}</td></tr>)}
+              {(dashboardData?.affectedPeriods ?? []).map((row) => (
+  <tr key={row.id}>
+    <td><strong>{row.period}</strong></td>
+    <td><strong>{row.className}</strong><small>{row.subject}</small></td>
+    <td>{row.teacher}</td>
+    <td>
+      <span className={`status-pill ${row.assigned ? 'covered' : 'urgent'}`}>
+        {row.assigned ? 'Assigned' : 'Needs relief'}
+      </span>
+    </td>
+    <td>
+      {!row.assigned && (
+        <button
+          className="text-button"
+          onClick={() => setActivePage('Relief Assignments')}
+        >
+          Find relief →
+        </button>
+      )}
+    </td>
+  </tr>
+))}
             </tbody></table></div>
-            <div className="panel-footer"><span><i className="legend-dot red-dot" /> Needs relief</span><span><i className="legend-dot green-dot" /> Assigned</span><span className="footer-note">Showing 3 of 3 affected periods</span></div>
+            <div className="panel-footer"><span><i className="legend-dot red-dot" /> Needs relief</span><span><i className="legend-dot green-dot" /> Assigned</span><span className="footer-note">Showing {dashboardData?.affectedPeriods.length ?? 0} affected periods</span></div>
           </article>
 
           <div className="side-panels">
-            <article className="panel coverage-panel"><div className="panel-heading"><div><span className="eyebrow">TODAY</span><h2>Coverage status</h2></div><span className="eyebrow">8 PERIODS</span></div><div className="progress-track"><span /></div><div className="coverage-legend"><span><i className="legend-dot green-dot" /> Assigned 1</span><span><i className="legend-dot red-dot" /> Pending 2</span></div><div className="period-row">{['P-1', 'P-2', 'P-3', 'P-4'].map((period, i) => <div className={`period-chip ${i === 0 || i === 2 ? 'needs-relief' : 'free'}`} key={period}><strong>{period}</strong><small>{i === 0 || i === 2 ? 'Pending' : 'Free'}</small></div>)}</div></article>
-            <article className="panel workload-panel"><span className="eyebrow">FAIR WORKLOAD</span><h2>Available teachers</h2><p>Teachers with fewer relief duties this week</p><div className="teacher-row"><span className="avatar">NS</span><span><strong>Ms. N. Silva</strong><small>Mathematics</small></span><span className="teacher-load">0 duties</span></div><div className="teacher-row"><span className="avatar avatar-lilac">TJ</span><span><strong>Mr. T. Jayawardena</strong><small>Commerce</small></span><span className="teacher-load">1 duty</span></div><button className="button button-light full-button">View teacher workload</button></article>
+            <article className="panel coverage-panel">
+  <div className="panel-heading">
+    <div>
+      <span className="eyebrow">TODAY</span>
+      <h2>Coverage status</h2>
+    </div>
+    <span className="eyebrow">
+      {dashboardData?.affectedPeriods.length ?? 0} PERIODS
+    </span>
+  </div>
+
+  <div className="progress-track">
+    <span
+      style={{
+        width: `${
+          dashboardData?.affectedPeriods.length
+            ? (dashboardData.coveredCount /
+                dashboardData.affectedPeriods.length) *
+              100
+            : 0
+        }%`,
+      }}
+    />
+  </div>
+
+  <div className="coverage-legend">
+    <span>
+      <i className="legend-dot green-dot" />
+      Assigned {dashboardData?.coveredCount ?? 0}
+    </span>
+    <span>
+      <i className="legend-dot red-dot" />
+      Pending {pendingCoverageCount ?? 0}
+    </span>
+  </div>
+
+  <div className="period-row">
+    {(dashboardData?.affectedPeriods ?? []).slice(0, 4).map((period) => (
+      <div
+        className={`period-chip ${period.assigned ? 'free' : 'needs-relief'}`}
+        key={period.id}
+      >
+        <strong>{period.period}</strong>
+        <small>{period.assigned ? 'Assigned' : 'Pending'}</small>
+      </div>
+    ))}
+    {dashboardData?.affectedPeriods.length === 0 && (
+      <p>No affected periods today.</p>
+    )}
+  </div>
+</article>
+            <article className="panel workload-panel">
+  <span className="eyebrow">DAILY ATTENDANCE</span>
+  <h2>Staff summary</h2>
+  <p>Attendance recorded for today.</p>
+  <div className="teacher-row">
+    <span><strong>Active teachers</strong></span>
+    <span className="teacher-load">{dashboardData?.activeTeacherCount ?? 0}</span>
+  </div>
+  <div className="teacher-row">
+    <span><strong>Present</strong></span>
+    <span className="teacher-load">{dashboardData?.presentCount ?? 0}</span>
+  </div>
+  <div className="teacher-row">
+    <span><strong>Absent / half-day</strong></span>
+    <span className="teacher-load">{dashboardData?.absentCount ?? 0}</span>
+  </div>
+  <button
+    className="button button-light full-button"
+    onClick={() => setActivePage('Daily Attendance')}
+  >
+    View attendance
+  </button>
+</article>
           </div>
         </section>
         <footer className="page-footer">SmartRelief SL <span>School relief and timetable management</span></footer>
