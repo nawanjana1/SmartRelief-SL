@@ -8,6 +8,8 @@ import MasterTimetable from './MasterTimetable.jsx';
 import ReliefAssignments from './ReliefAssignments.jsx';
 import { getDashboardData } from './api/dashboard.js';
 import ReportsInsights from './ReportsInsights.jsx';
+import Login from './Login.jsx';
+import { supabase } from './lib/supabase.js';
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
   { icon: '☑', label: 'Daily Attendance' },
@@ -113,18 +115,38 @@ function StatCard({ label, value, hint, color }) {
 
 function App() {
  const [activePage, setActivePage] = useState('Dashboard');
+   const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
    const [dashboardData, setDashboardData] = useState(null);
   const [dashboardError, setDashboardError] = useState('');
 
-  useEffect(() => {
+    useEffect(() => {
+    if (!session) return;
+
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     getDashboardData(today, now.getFullYear(), 2)
       .then(setDashboardData)
       .catch((error) => setDashboardError(error.message));
-  }, []);
+  }, [session]);
 
   const pendingCoverageCount = dashboardData
     ? Math.max(
@@ -133,7 +155,16 @@ function App() {
       )
     : null;
 
-if (
+
+
+    if (authLoading) {
+    return <main className="p-8">Checking sign-in...</main>;
+  }
+
+  if (!session) {
+    return <Login />;
+  }
+  if (
   activePage === 'Daily Attendance' ||
   activePage === 'Master Timetable' ||
   activePage === 'Relief Assignments' ||
@@ -183,7 +214,16 @@ if (
       <main className="main-content">
         <header className="topbar">
           <label className="search-box"><span>⌕</span><input aria-label="Search" placeholder="Search teachers, subjects, or classes..." /></label>
-          <div className="topbar-right"><span className="term-pill">Term 2 <span>•</span> Week 7</span><span className="admin-chip"><span className="online-dot" /> Admin</span></div>
+          <div className="topbar-right"><span className="term-pill">Term 2 <span>•</span> Week 7</span><span className="admin-chip">
+  <span className="online-dot" /> {session.user.email}
+</span>
+<button
+  className="button button-light"
+  type="button"
+  onClick={() => supabase.auth.signOut()}
+>
+  Sign out
+</button></div>
         </header>
 
         <section className="page-heading">

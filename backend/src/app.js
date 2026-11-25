@@ -12,6 +12,48 @@ export function createApp() {
     response.json({ status: 'ok', service: 'smartrelief-api' });
   });
 
+  app.use('/api', async (request, response, next) => {
+    const authorization = request.get('authorization') ?? '';
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+
+    if (!match) {
+      return response.status(401).json({ error: 'Sign in is required' });
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getUser(match[1]);
+      if (error || !data.user) {
+        return response.status(401).json({ error: 'Your session is invalid or expired' });
+      }
+
+      const { data: account, error: accountError } = await supabase
+        .from('user_accounts')
+        .select('id, teacher_id, email, role, is_active')
+        .eq('auth_user_id', data.user.id)
+        .maybeSingle();
+
+      if (accountError) {
+        console.error('Failed to load user account:', accountError.message);
+        return response.status(500).json({ error: 'Unable to load your account' });
+      }
+
+      if (!account || !account.is_active) {
+        return response.status(403).json({ error: 'Your account is not active' });
+      }
+
+      if (account.role !== 'admin') {
+        return response.status(403).json({ error: 'Administrator access is required' });
+      }
+
+      request.authUser = data.user;
+      request.userAccount = account;
+      return next();
+    } catch (error) {
+      console.error('Failed to validate API session:', error.message);
+      return response.status(401).json({ error: 'Unable to validate your session' });
+    }
+  });
+
   app.get('/api/teachers', async (_request, response) => {
     const { data, error } = await supabase
       .from('teachers')

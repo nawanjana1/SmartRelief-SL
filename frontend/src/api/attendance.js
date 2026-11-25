@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,14 +11,14 @@ async function readResponse(response) {
 }
 
 export async function getAttendance(date) {
-  const response = await fetch(
+  const response = await apiFetch(
     `/api/teacher-attendance?date=${encodeURIComponent(date)}`,
   );
   return readResponse(response);
 }
 
 export async function addAttendance(record) {
-  const response = await fetch('/api/teacher-attendance', {
+  const response = await apiFetch('/api/teacher-attendance', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +30,7 @@ export async function addAttendance(record) {
 }
 
 export async function updateAttendance(id, updates) {
-  const response = await fetch(`/api/teacher-attendance/${id}`, {
+  const response = await apiFetch(`/api/teacher-attendance/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -38,3 +40,4 @@ export async function updateAttendance(id, updates) {
 
   return readResponse(response);
 }
+

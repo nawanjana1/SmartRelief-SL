@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,12 +11,12 @@ async function readResponse(response) {
 }
 
 export async function getClasses() {
-  const response = await fetch('/api/classes');
+  const response = await apiFetch('/api/classes');
   return readResponse(response);
 }
 
 export async function addClass(classData) {
-  const response = await fetch('/api/classes', {
+  const response = await apiFetch('/api/classes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,3 +26,4 @@ export async function addClass(classData) {
 
   return readResponse(response);
 }
+

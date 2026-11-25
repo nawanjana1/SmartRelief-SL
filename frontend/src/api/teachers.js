@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,12 +11,12 @@ async function readResponse(response) {
 }
 
 export async function getTeachers() {
-  const response = await fetch('/api/teachers');
+  const response = await apiFetch('/api/teachers');
   return readResponse(response);
 }
 
 export async function addTeacher(teacher) {
-  const response = await fetch('/api/teachers', {
+  const response = await apiFetch('/api/teachers', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,7 +28,7 @@ export async function addTeacher(teacher) {
 }
 
 export async function updateTeacher(id, updates) {
-  const response = await fetch(`/api/teachers/${id}`, {
+  const response = await apiFetch(`/api/teachers/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -36,3 +38,4 @@ export async function updateTeacher(id, updates) {
 
   return readResponse(response);
 }
+

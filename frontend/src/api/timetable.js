@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,12 +11,12 @@ async function readResponse(response) {
 }
 
 export async function getTimetable() {
-  const response = await fetch('/api/timetable');
+  const response = await apiFetch('/api/timetable');
   return readResponse(response);
 }
 
 export async function addTimetableEntry(entry) {
-  const response = await fetch('/api/timetable', {
+  const response = await apiFetch('/api/timetable', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,3 +26,4 @@ export async function addTimetableEntry(entry) {
 
   return readResponse(response);
 }
+

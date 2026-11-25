@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,14 +11,14 @@ async function readResponse(response) {
 }
 
 export async function getReliefAssignments(date) {
-  const response = await fetch(
+  const response = await apiFetch(
     `/api/relief-assignments?date=${encodeURIComponent(date)}`,
   );
   return readResponse(response);
 }
 
 export async function addReliefAssignment(assignment) {
-  const response = await fetch('/api/relief-assignments', {
+  const response = await apiFetch('/api/relief-assignments', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,3 +28,4 @@ export async function addReliefAssignment(assignment) {
 
   return readResponse(response);
 }
+

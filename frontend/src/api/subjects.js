@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,12 +11,12 @@ async function readResponse(response) {
 }
 
 export async function getSubjects() {
-  const response = await fetch('/api/subjects');
+  const response = await apiFetch('/api/subjects');
   return readResponse(response);
 }
 
 export async function addSubject(subject) {
-  const response = await fetch('/api/subjects', {
+  const response = await apiFetch('/api/subjects', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,7 +28,7 @@ export async function addSubject(subject) {
 }
 
 export async function updateSubject(id, updates) {
-  const response = await fetch(`/api/subjects/${id}`, {
+  const response = await apiFetch(`/api/subjects/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -36,3 +38,4 @@ export async function updateSubject(id, updates) {
 
   return readResponse(response);
 }
+

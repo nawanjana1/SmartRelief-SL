@@ -1,3 +1,5 @@
+import { apiFetch } from './apiFetch.js';
+
 async function readResponse(response) {
   const result = await response.json().catch(() => ({}));
 
@@ -9,12 +11,12 @@ async function readResponse(response) {
 }
 
 export async function getTeacherSubjects() {
-  const response = await fetch('/api/teacher-subjects');
+  const response = await apiFetch('/api/teacher-subjects');
   return readResponse(response);
 }
 
 export async function saveTeacherSubject(assignment) {
-  const response = await fetch('/api/teacher-subjects', {
+  const response = await apiFetch('/api/teacher-subjects', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,3 +26,4 @@ export async function saveTeacherSubject(assignment) {
 
   return readResponse(response);
 }
+
