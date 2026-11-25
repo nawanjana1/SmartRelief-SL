@@ -57,6 +57,9 @@ export async function getDashboardData(date, academicYear, term) {
     });
 
   return {
+    teachers,
+    classes,
+    subjects,
     activeTeacherCount: activeTeachers.length,
     presentCount: attendance.filter((item) => item.status === 'present').length,
     absentCount: attendance.filter((item) =>

@@ -9,6 +9,8 @@ import ReliefAssignments from './ReliefAssignments.jsx';
 import { getDashboardData } from './api/dashboard.js';
 import ReportsInsights from './ReportsInsights.jsx';
 import Login from './Login.jsx';
+import PasswordRecovery from './PasswordRecovery.jsx';
+import Settings from './Settings.jsx';
 import { supabase } from './lib/supabase.js';
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
@@ -25,11 +27,13 @@ const periods = [
   { period: 'P-5', subject: 'English', className: 'Grade 11-B', teacher: 'Mr. S. Fernando', state: 'Assigned', tone: 'covered' },
 ];
 
-function Sidebar({ onNavigate }) {
+function Sidebar({ onNavigate, activePage, email, onSignOut }) {
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
   return (
     <aside className="sidebar">
       <a className="brand" href="#top" aria-label="SmartRelief SL home">
-        <span className="brand-mark">↗</span>
+        <img className="brand-logo" src="/smartrelief-logo.png" alt="SmartRelief SL logo" />
         <span>
           <strong>SmartRelief SL</strong>
           <small>School Portal</small>
@@ -38,23 +42,20 @@ function Sidebar({ onNavigate }) {
 
       <div className="school-card">
         <span className="eyebrow">SELECTED SCHOOL</span>
-        <strong>My School</strong>
+        <strong>Hemamali Maha Vidyalaya</strong>
       </div>
 
       <nav aria-label="Main navigation">
         {navItems.map((item) => (
           <a
+            className={`nav-item${activePage === item.label ? ' active' : ''}`}
+            key={item.label}
+            href="#top"
+            aria-current={activePage === item.label ? 'page' : undefined}
             onClick={(event) => {
-  if (
-  item.label === 'Daily Attendance' ||
-  item.label === 'Relief Assignments' ||
-  item.label === 'Reports & Insights' ||
-  item.label === 'Master Timetable'
-) {
-  event.preventDefault();
-  onNavigate(item.label);
-}
-}}
+              event.preventDefault();
+              onNavigate(item.label);
+            }}
           >
             <span className="nav-icon">{item.icon}</span>
             {item.label}
@@ -66,24 +67,10 @@ function Sidebar({ onNavigate }) {
 
         {registryItems.map((item) => (
           <button
-            className="nav-item compact"
+            className={`nav-item compact${activePage === item ? ' active' : ''}`}
             key={item}
-            onClick={() => {
-  if (
-  item === 'Teachers Registry' ||
-  item === 'Subjects & Load' ||
-  item === 'Classes & Sections' ||
-  item === 'Reports & Insights'
-) {
-  onNavigate(item);
-}
-}}
-            style={{
-              background: 'transparent',
-              border: 0,
-              textAlign: 'left',
-              width: '100%',
-            }}
+            aria-current={activePage === item ? 'page' : undefined}
+            onClick={() => onNavigate(item)}
             type="button"
           >
             <span className="nav-icon">◈</span>
@@ -91,32 +78,82 @@ function Sidebar({ onNavigate }) {
           </button>
         ))}
 
-        <a className="nav-item compact" href="#">
+        <button
+          className={`nav-item compact${activePage === 'Settings' ? ' active' : ''}`}
+          aria-current={activePage === 'Settings' ? 'page' : undefined}
+          onClick={() => onNavigate('Settings')}
+          type="button"
+        >
           <span className="nav-icon">⚙</span>
           Settings
-        </a>
+        </button>
       </nav>
 
-      <div className="account">
+      {accountMenuOpen && (
+        <div className="account-dropdown">
+          <span className="eyebrow">SIGNED IN AS</span>
+          <strong className="account-dropdown-email">{email}</strong>
+          <span className="account-dropdown-role">School administrator</span>
+          <div className="account-dropdown-actions">
+            <button
+              onClick={() => {
+                setAccountMenuOpen(false);
+                onNavigate('Settings');
+              }}
+              type="button"
+            >
+              Account settings
+            </button>
+            <button
+              onClick={onSignOut}
+              type="button"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button
+        className="account"
+        aria-expanded={accountMenuOpen}
+        aria-haspopup="menu"
+        onClick={() => setAccountMenuOpen((open) => !open)}
+        type="button"
+      >
         <div className="avatar admin-avatar">AD</div>
         <span>
           <strong>School Admin</strong>
           <small>Administrator</small>
         </span>
-        <span className="account-menu">⌄</span>
-      </div>
+        <span className="account-menu">{accountMenuOpen ? '⌃' : '⌄'}</span>
+      </button>
     </aside>
   );
 }
 
-function StatCard({ label, value, hint, color }) {
-  return <article className="stat-card"><div className="stat-top"><span className="eyebrow">{label}</span><span className={`stat-icon ${color}`}>●</span></div><strong className="stat-value">{value}</strong><span className="stat-hint">{hint}</span></article>;
+function StatCard({ label, value, hint, color, icon }) {
+  return (
+    <article className="stat-card">
+      <div className="stat-top">
+        <span className="eyebrow">{label}</span>
+        <span className={`stat-icon ${color}`} aria-hidden="true">{icon}</span>
+      </div>
+      <strong className="stat-value">{value}</strong>
+      <span className="stat-hint">{hint}</span>
+    </article>
+  );
 }
 
 function App() {
  const [activePage, setActivePage] = useState('Dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
    const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(() =>
+    window.location.hash.includes('type=recovery'),
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -126,8 +163,9 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
       setAuthLoading(false);
     });
 
@@ -154,11 +192,56 @@ function App() {
         dashboardData.affectedPeriods.length - dashboardData.coveredCount,
       )
     : null;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const todayLabel = new Intl.DateTimeFormat('en-LK', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+  const searchResults = normalizedSearch.length < 2 || !dashboardData
+    ? []
+    : [
+        ...(dashboardData.teachers ?? []).map((teacher) => ({
+          kind: 'Teacher',
+          title: teacher.full_name,
+          detail: [teacher.employee_number, teacher.department].filter(Boolean).join(' · '),
+          page: 'Teachers Registry',
+          searchText: `${teacher.full_name} ${teacher.employee_number} ${teacher.email ?? ''} ${teacher.department ?? ''}`,
+        })),
+        ...(dashboardData.subjects ?? []).map((subject) => ({
+          kind: 'Subject',
+          title: subject.name,
+          detail: subject.code,
+          page: 'Subjects & Load',
+          searchText: `${subject.name} ${subject.code}`,
+        })),
+        ...(dashboardData.classes ?? []).map((schoolClass) => ({
+          kind: 'Class',
+          title: `Grade ${schoolClass.grade}-${schoolClass.section}`,
+          detail: 'Class & section',
+          page: 'Classes & Sections',
+          searchText: `grade ${schoolClass.grade} ${schoolClass.section} ${schoolClass.grade}-${schoolClass.section}`,
+        })),
+      ]
+        .filter((item) => item.searchText.toLocaleLowerCase().includes(normalizedSearch))
+        .slice(0, 8);
+
+  function openSearchResult(page) {
+    setActivePage(page);
+    setSearchQuery('');
+    setSearchOpen(false);
+  }
 
 
 
     if (authLoading) {
     return <main className="p-8">Checking sign-in...</main>;
+  }
+
+  if (passwordRecovery) {
+    return <PasswordRecovery onComplete={() => setPasswordRecovery(false)} />;
   }
 
   if (!session) {
@@ -171,11 +254,17 @@ function App() {
   activePage === 'Teachers Registry' ||
   activePage === 'Subjects & Load' ||
   activePage === 'Reports & Insights' ||
-  activePage === 'Classes & Sections'
+  activePage === 'Classes & Sections' ||
+  activePage === 'Settings'
 ) {
   return (
     <div className="app-shell" id="top">
-      <Sidebar onNavigate={setActivePage} />
+      <Sidebar
+        onNavigate={setActivePage}
+        activePage={activePage}
+        email={session.user.email}
+        onSignOut={() => supabase.auth.signOut()}
+      />
       <div className="main-content">
         <button
           className="button button-light"
@@ -196,6 +285,11 @@ function App() {
         
         ) : activePage === 'Teachers Registry' ? (
           <TeacherRegistry />
+        ) : activePage === 'Settings' ? (
+          <Settings
+            email={session.user.email}
+            onSignOut={() => supabase.auth.signOut()}
+          />
         ) : activePage === 'Subjects & Load' ? (
           <>
             <SubjectRegistry />
@@ -210,10 +304,73 @@ function App() {
 }
   return (
     <div className="app-shell" id="top">
-      <Sidebar onNavigate={setActivePage} />
+      <Sidebar
+        onNavigate={setActivePage}
+        activePage={activePage}
+        email={session.user.email}
+        onSignOut={() => supabase.auth.signOut()}
+      />
       <main className="main-content">
         <header className="topbar">
-          <label className="search-box"><span>⌕</span><input aria-label="Search" placeholder="Search teachers, subjects, or classes..." /></label>
+          <div
+            className="search-container"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setSearchOpen(false);
+            }}
+          >
+            <label className="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input
+                aria-label="Search teachers, subjects, or classes"
+                aria-expanded={searchOpen && normalizedSearch.length >= 2}
+                aria-controls="global-search-results"
+                autoComplete="off"
+                placeholder="Search teachers, subjects, or classes..."
+                value={searchQuery}
+                onFocus={() => setSearchOpen(true)}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setSearchOpen(false);
+                  if (event.key === 'Enter' && searchResults[0]) {
+                    event.preventDefault();
+                    openSearchResult(searchResults[0].page);
+                  }
+                }}
+              />
+            </label>
+            {searchOpen && normalizedSearch.length > 0 && (
+              <div className="search-results" id="global-search-results" role="listbox">
+                {normalizedSearch.length < 2 ? (
+                  <p className="search-empty">Type at least 2 characters.</p>
+                ) : dashboardError ? (
+                  <p className="search-empty">School records could not be loaded.</p>
+                ) : !dashboardData ? (
+                  <p className="search-empty">Loading school records…</p>
+                ) : searchResults.length === 0 ? (
+                  <p className="search-empty">No matching teachers, subjects, or classes.</p>
+                ) : (
+                  searchResults.map((result) => (
+                    <button
+                      className="search-result"
+                      key={`${result.kind}-${result.title}`}
+                      onClick={() => openSearchResult(result.page)}
+                      role="option"
+                      type="button"
+                    >
+                      <span className={`search-result-icon ${result.kind.toLowerCase()}`}>
+                        {result.kind.charAt(0)}
+                      </span>
+                      <span className="search-result-copy">
+                        <strong>{result.title}</strong>
+                        <small>{result.detail || result.kind}</small>
+                      </span>
+                      <span className="search-result-kind">{result.kind}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           <div className="topbar-right"><span className="term-pill">Term 2 <span>•</span> Week 7</span><span className="admin-chip">
   <span className="online-dot" /> {session.user.email}
 </span>
@@ -226,9 +383,22 @@ function App() {
 </button></div>
         </header>
 
-        <section className="page-heading">
-          <div><span className="eyebrow heading-eyebrow">SCHOOL RELIEF MANAGEMENT</span><h1>Good morning, Admin</h1><p>Here is the relief coverage overview for today.</p></div>
-          <button className="button button-secondary">▣ &nbsp; View timetable</button>
+        <section className="page-heading dashboard-heading">
+          <div className="dashboard-heading-copy">
+            <span className="eyebrow heading-eyebrow">HEMAMALI MAHA VIDYALAYA · DAILY OVERVIEW</span>
+            <h1>Good {greeting}, Admin</h1>
+            <p>Your school staffing and relief snapshot for today.</p>
+          </div>
+          <div className="dashboard-heading-actions">
+            <span className="dashboard-date">{todayLabel}</span>
+            <button
+              className="button button-secondary"
+              onClick={() => setActivePage('Master Timetable')}
+              type="button"
+            >
+              ▤ &nbsp; View timetable
+            </button>
+          </div>
         </section>
 {dashboardError && (
   <p className="rounded-lg bg-red-50 p-4 text-red-700">
@@ -254,7 +424,13 @@ function App() {
     {pendingCoverageCount > 0 ? 'ACTION NEEDED' : 'UP TO DATE'}
   </span>
 </div>
-          <button className="button button-primary">Review assignments <span>→</span></button>
+          <button
+            className="button button-primary"
+            onClick={() => setActivePage('Relief Assignments')}
+            type="button"
+          >
+            Review assignments <span>→</span>
+          </button>
         </section>
 
         <section className="stats-grid" aria-label="Today's statistics">
@@ -263,18 +439,21 @@ function App() {
   value={dashboardData?.activeTeacherCount ?? '—'}
   hint="Active teachers"
   color="blue"
+  icon="◉"
 />
 <StatCard
   label="PRESENT TODAY"
   value={dashboardData?.presentCount ?? '—'}
   hint="Attendance recorded"
   color="green"
+  icon="✓"
 />
 <StatCard
   label="ABSENT / HALF-DAY"
   value={dashboardData?.absentCount ?? '—'}
   hint="Today's attendance"
   color="red"
+  icon="!"
 />
 <StatCard
   label="RELIEF COVERAGE"
@@ -285,12 +464,13 @@ function App() {
   }
   hint="Covered periods / affected periods"
   color="violet"
+  icon="↗"
 />
         </section>
 
         <section className="content-grid">
           <article className="panel assignments-panel">
-            <div className="panel-heading"><div><span className="eyebrow">ATTENTION QUEUE</span><h2>Pending relief assignments</h2></div><button className="button button-light">View all <span>→</span></button></div>
+            <div className="panel-heading"><div><span className="eyebrow">ATTENTION QUEUE</span><h2>Pending relief assignments</h2></div><button className="button button-light" onClick={() => setActivePage('Relief Assignments')} type="button">View all <span>→</span></button></div>
             <div className="table-wrap"><table><thead><tr><th>PERIOD</th><th>CLASS & SUBJECT</th><th>ABSENT TEACHER</th><th>STATUS</th><th></th></tr></thead><tbody>
               {(dashboardData?.affectedPeriods ?? []).map((row) => (
   <tr key={row.id}>
