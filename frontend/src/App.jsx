@@ -7,6 +7,7 @@ import AttendanceRegistry from './AttendanceRegistry.jsx';
 import MasterTimetable from './MasterTimetable.jsx';
 import ReliefAssignments from './ReliefAssignments.jsx';
 import { getDashboardData } from './api/dashboard.js';
+import ReportsInsights from './ReportsInsights.jsx';
 const navItems = [
   { icon: '▦', label: 'Dashboard', active: true },
   { icon: '☑', label: 'Daily Attendance' },
@@ -45,6 +46,7 @@ function Sidebar({ onNavigate }) {
   if (
   item.label === 'Daily Attendance' ||
   item.label === 'Relief Assignments' ||
+  item.label === 'Reports & Insights' ||
   item.label === 'Master Timetable'
 ) {
   event.preventDefault();
@@ -68,7 +70,8 @@ function Sidebar({ onNavigate }) {
   if (
   item === 'Teachers Registry' ||
   item === 'Subjects & Load' ||
-  item === 'Classes & Sections'
+  item === 'Classes & Sections' ||
+  item === 'Reports & Insights'
 ) {
   onNavigate(item);
 }
@@ -136,6 +139,7 @@ if (
   activePage === 'Relief Assignments' ||
   activePage === 'Teachers Registry' ||
   activePage === 'Subjects & Load' ||
+  activePage === 'Reports & Insights' ||
   activePage === 'Classes & Sections'
 ) {
   return (
@@ -156,6 +160,9 @@ if (
           <AttendanceRegistry />
         ) : activePage === 'Master Timetable' ? (
           <MasterTimetable />
+        ) : activePage === 'Reports & Insights' ? (
+  <ReportsInsights />
+        
         ) : activePage === 'Teachers Registry' ? (
           <TeacherRegistry />
         ) : activePage === 'Subjects & Load' ? (
